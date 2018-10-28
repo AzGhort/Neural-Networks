@@ -1,3 +1,5 @@
+## HEAVILY INSPIRED BY https://github.com/mattm/simple-neural-network
+
 import random
 import math
 import binascii
