@@ -1,8 +1,4 @@
 function ret = perc_recall(p,x)
-s = p*[x;1];
-if (s >= 0)
-    ret = 1;
-else
-    ret = 0;
-end
+inp = p * [x; ones(1, size(x,2))];
+ret = (inp >= 0);
 end
