@@ -75,6 +75,7 @@ class NeuralNetwork:
 
     def test_vector(self, vector):
         o = self.feedforward(vector)
+        print(o)
         out = np.zeros(o.size)
         out[np.argmax(o)] = 1;
         return out
