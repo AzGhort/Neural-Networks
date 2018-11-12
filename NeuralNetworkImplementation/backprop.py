@@ -25,11 +25,11 @@ class NeuralNetwork:
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta)
-            correctly_classified = self.evaluate(training_data)
-            print("Epoch {0}: {1} / {2} points were classified correctly.".format(j, correctly_classified, mini_batch_size))
-            if (correctly_classified == mini_batch_size):
-                print("All points were classified correctly.")
-                break
+            #correctly_classified = self.evaluate(training_data)
+            #print("Epoch {0}: {1} / {2} points were classified correctly.".format(j, correctly_classified, mini_batch_size))
+            #if (correctly_classified == mini_batch_size):
+                #print("All points were classified correctly.")
+                #break
 
     def update_mini_batch(self, mini_batch, eta):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -67,18 +67,20 @@ class NeuralNetwork:
         return (nabla_b, nabla_w)
 
     def evaluate(self, test_data):
-        test_results = [(np.argmax(self.feedforward(x)), np.argmax(y)) for (x, y) in test_data]
+        test_results = [(self.test_against_threshold(x, 0.9), np.argmax(y)) for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
+
+    def test_against_threshold(self, vector, threshold):
+        out = [item for sublist in self.feedforward(vector).tolist() for item in sublist]
+        s = sum(out)
+        m = max(out)
+        index = -1
+        if (m > threshold):
+            index = out.index(m)
+        return index
 
     def cost_derivative(self, output_activations, y):
         return (output_activations-y)
-
-    def test_vector(self, vector):
-        o = self.feedforward(vector)
-        print(o)
-        out = np.zeros(o.size)
-        out[np.argmax(o)] = 1;
-        return out
             
 class LetterParser:
     def __init__(self, N):
@@ -88,15 +90,28 @@ class LetterParser:
     def set_keywords(self, keywords):
         self.keywords = keywords
 
+    def get_negative_keywords(self, keyword, N):
+        set = []
+        for i in range(N):
+            edit = list(keyword)
+            index = random.randint(0,6)
+            edit[index] = random.choice(string.ascii_lowercase)
+            input_vector = self.get_input_vector_from_word("".join(edit))
+            output_vector = [0]*self.N
+            output_vector = np.array(output_vector)
+            output_vector.shape = (self.N, 1)
+            set.append((input_vector, output_vector))
+        return set
+
     def get_train_set(self):
         train_set=[]
         for j in range(len(self.keywords)):
-                vector = self.get_input_vector_from_word(self.keywords[j])
-                output_vector = [0]*len(self.keywords)
-                output_vector[j] = 1
-                output_vector = np.array(output_vector)
-                output_vector.shape = (self.N, 1)
-                train_set.append((vector, output_vector))
+            vector = self.get_input_vector_from_word(self.keywords[j])
+            output_vector = [0]*self.N
+            output_vector[j] = 1
+            output_vector = np.array(output_vector)
+            output_vector.shape = (self.N, 1)
+            train_set.append((vector, output_vector))
         return train_set
        
     def get_input_vector_from_word(self, word):
@@ -117,10 +132,25 @@ class LetterParser:
 
     def test_word(self, word, nn):
         vector = self.get_input_vector_from_word(word)
-        out = nn.test_vector(vector)
+        out = [str(round(num[0], 6)) for num in nn.feedforward(vector)]
+        print("-------------------------------------")
         print("Testing word \"{0}\".".format(word))
-        print("Output from neural network: {0}.".format(out))
+        print("Raw output from neural network: {0}.".format(out))
+        print("Word classified as keyword number: {0}".format(nn.test_against_threshold(vector, 0.9)))
+        print("-------------------------------------")
         return out
+
+    def train_network(self, nn, epochs, pos_iters, neg_words):
+        train_set = self.get_train_set()
+        for i in range(epochs):
+            print("Epoch number {0} has begun.".format(i))
+            j = 0
+            for (x, y) in train_set:
+                neg = self.get_negative_keywords(self.keywords[j], neg_words)
+                print("Training keyword \"{0}\" and its negative variants...".format(self.keywords[j]))
+                nn.SGD([(x, y)], pos_iters, 1, 0.5)
+                nn.SGD(neg, 1, neg_words, 0.5)
+                j = j + 1       
         
 # auxiliary math functions
 def sigmoid(z):
@@ -129,11 +159,18 @@ def sigmoid(z):
 def sigmoid_prime(z):
         return sigmoid(z)*(1-sigmoid(z))
 
-
 ### MAIN
-l = LetterParser(10)
+l = LetterParser(5)
+l.set_keywords(['aaaaaaa', 'bbbbbbb', 'ccccccc', 'ddddddd', 'eeeeeee'])
 train_set = l.get_train_set()
-nn = NeuralNetwork([35, 4, 10])
-nn.SGD(train_set, 100000, 10, 0.5)
+nn = NeuralNetwork([35, 17, 5])
+l.train_network(nn, 250, 15, 20)
 for word in l.keywords:
     l.test_word(word, nn)
+inp = ''
+while (inp != 'exit'):
+    inp = input('>     Please enter word (of length 7) to classify by neural network.\n')
+    if (len(inp) != 7):
+        print('Given word has not length 7!')
+    else:
+        l.test_word(inp, nn)
