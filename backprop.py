@@ -8,27 +8,17 @@ import numpy as np
 class NeuralNetwork:    
 
     def __init__(self, sizes):
-        """sizes - number of neurons in layers (eg. [2 3 1])
-           biases - one column for biases of every layer
-           weights - list of weight matrices for each layer
-                   - in each matrix, row is a list of weights for one neuron"""
         self.num_layers = len(sizes)
         self.sizes = sizes
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
         self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
 
     def feedforward(self, a):
-        """Return the output (as a column vector) of the network if a is input."""
         for b, w in zip(self.biases, self.weights):
             a = sigmoid(np.dot(w, a)+b)
         return a
 
     def SGD(self, training_data, epochs, mini_batch_size, eta):
-        """Train the neural network using mini-batch stochastic
-        gradient descent.  The ``training_data`` is a list of tuples
-        ``(x, y)`` representing the training inputs and the desired
-        outputs.  The other non-optional parameters are
-        self-explanatory."""
         n = len(training_data)
         for j in range(epochs):
             random.shuffle(training_data)
@@ -42,8 +32,6 @@ class NeuralNetwork:
                 break
 
     def update_mini_batch(self, mini_batch, eta):
-        """ mini_batch - list of tuples (input, desired_out)
-            eta - learning rate"""
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         for x, y in mini_batch:
@@ -54,10 +42,6 @@ class NeuralNetwork:
         self.biases = [b-(eta/len(mini_batch))*nb for b, nb in zip(self.biases, nabla_b)]
 
     def backprop(self, x, y):
-        """Return a tuple ``(nabla_b, nabla_w)`` representing the
-        gradient for the cost function C_x.  ``nabla_b`` and
-        ``nabla_w`` are layer-by-layer lists of numpy arrays, similar
-        to ``self.biases`` and ``self.weights``."""
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         # feedforward
@@ -83,21 +67,25 @@ class NeuralNetwork:
         return (nabla_b, nabla_w)
 
     def evaluate(self, test_data):
-        """Return the number of test inputs for which the neural
-        network outputs the correct result. Note that the neural
-        network's output is assumed to be the index of whichever
-        neuron in the final layer has the highest activation."""
         test_results = [(np.argmax(self.feedforward(x)), np.argmax(y)) for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
 
     def cost_derivative(self, output_activations, y):
         return (output_activations-y)
 
+    def test_vector(self, vector):
+        o = self.feedforward(vector)
+        out = np.zeros(o.size)
+        out[np.argmax(o)] = 1;
+        return out
             
 class LetterParser:
     def __init__(self, N):
         self.keywords = self.generate_random_words(N)
         self.N = N
+
+    def set_keywords(self, keywords):
+        self.keywords = keywords
 
     def get_train_set(self):
         train_set=[]
@@ -126,7 +114,13 @@ class LetterParser:
             words.append(''.join(random.choice(string.ascii_lowercase) for _ in range(7)))
         return words    
 
-
+    def test_word(self, word, nn):
+        vector = self.get_input_vector_from_word(word)
+        out = nn.test_vector(vector)
+        print("Testing word {0}.".format(word))
+        print("Output from neural network: {0}.".format(out))
+        return out
+        
 # auxiliary math functions
 def sigmoid(z):
         return 1.0/(1.0+np.exp(-z))
@@ -140,3 +134,5 @@ l = LetterParser(10)
 train_set = l.get_train_set()
 nn = NeuralNetwork([35, 4, 10])
 nn.SGD(train_set, 100000, 10, 0.5)
+for word in l.keywords:
+    l.test_word(word, nn)
