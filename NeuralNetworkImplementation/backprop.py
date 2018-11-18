@@ -25,11 +25,6 @@ class NeuralNetwork:
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta)
-            #correctly_classified = self.evaluate(training_data)
-            #print("Epoch {0}: {1} / {2} points were classified correctly.".format(j, correctly_classified, mini_batch_size))
-            #if (correctly_classified == mini_batch_size):
-                #print("All points were classified correctly.")
-                #break
 
     def update_mini_batch(self, mini_batch, eta):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -164,7 +159,7 @@ l = LetterParser(5)
 l.set_keywords(['aaaaaaa', 'bbbbbbb', 'ccccccc', 'ddddddd', 'eeeeeee'])
 train_set = l.get_train_set()
 nn = NeuralNetwork([35, 17, 5])
-l.train_network(nn, 250, 15, 20)
+l.train_network(nn, 400, 15, 20)
 for word in l.keywords:
     l.test_word(word, nn)
 inp = ''
