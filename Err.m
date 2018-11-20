@@ -12,8 +12,8 @@ function E = Err(Name,NameL,Par,Tr,DTr,Ts,DTs)
 % output:
 %   E     r/n, where r=number of missclassified points from test set
 %         and n=size of test set
-
-actualOut = feval(NameL, Par, Ts);
-numErrs = (actualOut == DTs);
-E = sum(numErrs)/size(DTs,1);
+hyp = feval(Name,Tr,DTr,Par);
+actualOut = feval(NameL, hyp, Ts);
+numErrs = (actualOut ~= DTs);
+E = sum(numErrs)/size(Ts,2);
 end

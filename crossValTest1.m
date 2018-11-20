@@ -1,4 +1,5 @@
 % at first we read training patterns; this should a matrix of size 2x600
+clear;
 In1 = csvread('In1.csv');
 % then we read desired outputs for the training patterns (0/1 row vector of size 600)
 c1 = csvread('c1.csv');
