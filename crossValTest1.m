@@ -12,6 +12,4 @@ c1 = csvread('c1.csv');
 Par1 = {[1 1 -1], 1, 10};
 Par2 = {[1 1 -1], 1, 100};
 % run 5-fold cross-validation
-% dummyIn = [0.1,0.2,0.3,0.4,0.5,1.1; 0.6,0.7,0.8,0.9,1,1.2];
-% dummyOut = [1,1,1,0,0,0];
 [d,s] = CrossVal('PLearn','PRecall',Par1,'PLearn','PRecall',Par2,In1,c1,5,'NoShuffle')
