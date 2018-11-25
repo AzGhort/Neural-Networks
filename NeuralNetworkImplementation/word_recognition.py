@@ -81,7 +81,7 @@ l = LetterParser(5)
 l.set_keywords(['aaaaaaa', 'bbbbbbb', 'ccccccc', 'ddddddd', 'eeeeeee'])
 train_set = l.get_train_set()
 nn = bp.NeuralNetwork([35, 17, 5])
-l.train_network(nn, 400, 15, 20)
+l.train_network(nn, 10, 15, 20)
 for word in l.keywords:
     l.test_word(word, nn)
 inp = ''

@@ -1,4 +1,4 @@
-function [delta,s] = CrossVal(Name1,Name1L,Par1,Name2,Name2L,Par2,Pat,DOut,k,NoShuffle)
+function [delta,s, T] = CrossVal(Name1,Name1L,Par1,Name2,Name2L,Par2,Pat,DOut,k,NoShuffle)
 % Performs k-cross fold validation on given data and learning algorithms.
 %
 % inputs:
@@ -22,7 +22,7 @@ if ~exist('NoShuffle','var')
      Pat = Pat(:,randVector);
      DOut = DOut(:,randVector);
 end
-deltaI = zeros(1,5);
+deltaI = zeros(1,k);
 setSize = size(DOut, 2)/k;
 for i=1:k
     % testing set
@@ -37,5 +37,6 @@ for i=1:k
     deltaI(i)=errTiH1 - errTiH2;
 end
 delta = sum(deltaI)/k;
+T= abs(delta-ex(deltaI)
 s = std(deltaI);
 end
