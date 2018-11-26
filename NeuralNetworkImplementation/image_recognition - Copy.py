@@ -10,6 +10,8 @@ class ImageRecognizer:
     def __init__(self, imagename, tiles_vert, tiles_horz):
         self.image = Image.open(imagename)
         self.image = self.image.convert('L')
+        self.basic_inputs = []
+        self.basic_outputs = []
         self.inputs = []
         self.outputs = []
         self.tiles_vert = tiles_vert
@@ -23,14 +25,14 @@ class ImageRecognizer:
     def initialize_neural_network(self):
         # length of input/output vector
         vec_len = len(self.inputs[0])
-        self.NN = bp.NeuralNetwork([vec_len, 612, vec_len])
+        self.NN = bp.NeuralNetwork([vec_len, 2500, vec_len])
 
     # train network for given number of epochs
     # orig_tile_iters = iterations to train the original non-transformed tile
     def train_network(self, epochs, orig_tile_iters, learning_rate):
         print("Learning of neural network has started...")
         print("---------------------------------------")
-        err = self.get_mean_squared_error()
+        err = self.get_mean_squared_error(self.inputs, self.outputs)
         print("Mean squared error: {0}".format(err))
         j = 0
         for (x, y) in zip(self.inputs, self.outputs):
@@ -43,30 +45,49 @@ class ImageRecognizer:
             for i in range(0, epochs):
                 print("Epoch number {0} has begun.".format(i))
                 self.NN.SGD([(x, y)], iters, 1, learning_rate)
-            err = self.get_mean_squared_error()
+            err = self.get_mean_squared_error(self.inputs, self.outputs)
             print("Mean squared error: {0}".format(err))
             print("---------------------------------------")
         print("Learning of neural network completed.")
         print("---------------------------------------")
-
+   
+    # train network on basic inputs
+    def train_network_basic(self, epochs, pos_iters, learning_rate):
+        print("Learning of neural network has started...")
+        print("---------------------------------------")
+        err = self.get_mean_squared_error(self.basic_inputs, self.basic_outputs)
+        print("Mean squared error: {0}".format(err))
+        for i in range(0, epochs):
+            print("Epoch number {0} has begun.".format(i))
+            j = 0
+            for (x, y) in zip(self.basic_inputs, self.outputs):
+                #print("Training tile number {0}...".format(j))
+                j = j + 1
+                self.NN.SGD([(x, y)], pos_iters, 1, learning_rate)
+            err = self.get_mean_squared_error(self.basic_inputs, self.basic_outputs)
+            print("Mean squared error: {0}".format(err))
+            print("---------------------------------------")
+        print("Learning of neural network completed.")
+        print("---------------------------------------")
+    
     # get tiles from outputs of NN for original tiles
     def get_network_output_tiles(self):
         outs = []
         i = 0
-        for tile in self.tiles:
-            out = self.NN.feedforward(self.get_vector_from_image(tile))
-            #print("Raw output of NN for original tile number {0}.".format(i))
-            #print(out.tolist())
+        for vec in self.basic_inputs:
+            out = self.NN.feedforward(vec)
+            print("Raw output of NN for original tile number {0}".format(i))
+            print(out.tolist())
             outs.append(self.get_image_from_vector(out))
             i = i + 1
         return outs
 
     # get mean squared error of the network
-    def get_mean_squared_error(self):
+    def get_mean_squared_error(self, ins, outs):
         N = len(self.inputs)
         s = 0
-        for (input, des_out) in zip(self.inputs, self.outputs):
-            actual_out = np.array([(1 if (o > 0.9) else 0) for o in self.NN.feedforward(input)])
+        for (input, des_out) in zip(ins, outs):
+            actual_out = np.array([(1 if (o > 0.5) else 0) for o in self.NN.feedforward(input)])
             squares = np.square((des_out - actual_out))
             s = s + np.sum(squares)
         return s*1.0/N
@@ -100,6 +121,8 @@ class ImageRecognizer:
                 tile = (self.image.crop((i, j, i+tile_height, j+tile_width)))
                 ins.append(tile)
                 self.tiles.append(tile)
+                self.basic_inputs.append(self.get_vector_from_image(tile))
+                self.basic_outputs.append(self.get_vector_from_image(tile))
                 # shift up
                 ins.append(self.image.crop((i+1, j, i+tile_height+1, j+tile_width)))
                 ins.append(self.image.crop((i+2, j, i+tile_height+2, j+tile_width)))
@@ -155,7 +178,7 @@ class ImageRecognizer:
         vector.shape = (side, side)
         for i in range(side):
             for j in range(side):
-                if vector[i][j] > 0.9:
+                if vector[i][j] > 0.5:
                    vector[i][j] = 255
                 else:
                    vector[i][j] = 0
@@ -184,6 +207,6 @@ class ImageRecognizer:
     # endregion
     
 ### MAIN
-parser = ImageRecognizer("house.jpg", 10, 10)
-parser.train_network(5, 1, 0.5)
+parser = ImageRecognizer("house.jpg", 50, 50)
+parser.train_network_basic(10, 5, 1)
 parser.test_image_identity()
