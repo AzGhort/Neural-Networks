@@ -74,14 +74,14 @@ class LetterParser:
                 print("Training keyword \"{0}\" and its negative variants...".format(self.keywords[j]))
                 nn.SGD([(x, y)], pos_iters, 1, 0.5)
                 nn.SGD(neg, 1, neg_words, 0.5)
-                j = j + 1       
+                j = j + 1
 
 ### MAIN
 l = LetterParser(5)
 l.set_keywords(['aaaaaaa', 'bbbbbbb', 'ccccccc', 'ddddddd', 'eeeeeee'])
 train_set = l.get_train_set()
 nn = bp.NeuralNetwork([35, 17, 5])
-l.train_network(nn, 10, 15, 20)
+l.train_network(nn, 100, 15, 20)
 for word in l.keywords:
     l.test_word(word, nn)
 inp = ''
