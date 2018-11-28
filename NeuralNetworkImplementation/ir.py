@@ -31,8 +31,8 @@ class ImageRecognizer:
     def train_network(self, epochs, pos_iters, learning_rate):
         print("Learning of neural network has started...")
         print("---------------------------------------")
-        #err = self.get_mean_squared_error(self.inputs, self.outputs)
-        #print("Mean squared error: {0}".format(err))
+        err = self.get_mean_squared_error()
+        print("Mean squared error: {0}".format(err))
         for i in range(0, epochs):
             print("Epoch number {0} has begun.".format(i))
             j = 0
@@ -40,8 +40,8 @@ class ImageRecognizer:
                 #print("Training tile number {0}...".format(j))
                 j = j + 1
                 self.NN.SGD([(x, y)], pos_iters, 1, learning_rate)
-            #err = self.get_mean_squared_error(self.inputs, self.outputs)
-            #print("Mean squared error: {0}".format(err))
+            err = self.get_mean_squared_error()
+            print("Mean squared error: {0}".format(err))
             print("---------------------------------------")
         print("Learning of neural network completed.")
         print("---------------------------------------")
@@ -58,13 +58,14 @@ class ImageRecognizer:
             i = i + 1
         return outs
 
-    # get mean squared error of the network
-    def get_mean_squared_error(self, ins, outs):
-        N = len(self.inputs)
+    # get mean squared error of original image
+    def get_mean_squared_error(self):
+        N = len(self.basic_inputs)
         s = 0
-        for (input, des_out) in zip(ins, outs):
-            actual_out =[(1 if (o > 0.8) else 0) for o in self.NN.feedforward(input)]
-            squares = np.square(np.subtract(des_out, actual_out))
+        for i in range(0, N):
+            out_vec = self.NN.feedforward(self.basic_inputs[i])
+            out_im = self.get_image_from_vector(out_vec)
+            squares = np.square(np.subtract(out_im, self.tiles[i]))
             s = s + np.sum(squares)
         return s*1.0/N
 
