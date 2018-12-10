@@ -219,5 +219,5 @@ class ImageRecognizer:
 ### MAIN
 name = "house.jpg"
 parser = ImageRecognizer(name, 25, 25, 0.8)
-parser.train_network(30, 10, 1)
+parser.train_network(1000, 1, 1)
 parser.test_image_identity()
