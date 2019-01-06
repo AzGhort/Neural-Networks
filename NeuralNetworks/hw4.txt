@@ -1,0 +1,13 @@
+task 1
+-------
+15 neurons - MSE 1.58302e
+20 neurons - MSE 1.55260e
+30 neurons - MSE 1.59168e
+50 neurons - MSE 1.54738e
+100 neurons - MSE 1.51729e
+
+task 2
+------
+15 neurons - 15.73333 percent
+30 neurons - 14.19999 percent
+50 neurons - 14.76666 percent

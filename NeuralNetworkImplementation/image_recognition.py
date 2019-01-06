@@ -7,6 +7,8 @@ import numpy as np
 from PIL import Image, ImageChops
 
 class ImageRecognizer:
+
+
     def __init__(self, imagename, tiles_vert, tiles_horz, threshold, rotate):
         # image
         self.image = Image.open(imagename)
@@ -15,27 +17,21 @@ class ImageRecognizer:
         # data
         self.inputs = []
         self.outputs = []
-        self.rotations = {}
-        self.all_ins = []
         # constants
         self.tiles_vert = tiles_vert
         self.tiles_horz = tiles_horz
         self.threshold = threshold
         # prepare data and initialize NN
         self.rotate = rotate
+        self.all_ins = []
         self.diff_tiles = 0
         width, height = self.image.size
         tile_height = int(height/self.tiles_vert)
         tile_width = int(width/self.tiles_horz)
         self.prepare_data(tile_height, tile_width)
-        self.initialize_neural_network(tile_height*tile_width)
+        self.NN = bp.NeuralNetwork([tile_height*tile_width, tile_height*tile_width, tile_height*tile_width])
 
     # region Neural network
-
-    # set a new neural network
-    def initialize_neural_network(self, N):
-        self.NN = bp.NeuralNetwork([N, N, N])   
-   
     # train network
     def train_network(self, epochs, pos_iters, learning_rate):
         print("Learning of neural network has started...")
@@ -47,7 +43,7 @@ class ImageRecognizer:
             j = 0
             for (in_batch, out_batch) in zip(self.inputs, self.outputs):
                 # find the best version (e.g. the one with the lowest MSE)
-                (x, y) = self.get_tile_representation(in_batch, out_batch)
+                ((x, i1), (y, i2)) = self.get_tile_representation(in_batch, out_batch)
                 if (self.tile_empty(x)):
                     continue
                 j = j + 1
@@ -64,15 +60,15 @@ class ImageRecognizer:
         diff = 0
         for (in_batch, out_batch) in zip(self.inputs, self.outputs):
             # find the best version (e.g. the one with the lowest MSE)
-            (x, y) = self.get_tile_representation(in_batch, out_batch)
+            ((x, i1), (y, i2)) = self.get_tile_representation(in_batch, out_batch)
             out = self.NN.feedforward(x)
             im = self.get_image_from_vector(out)
             if (self.rotate):
-                outs.append(im.rotate(self.rotations[str(x.tolist())]))
-            else:
-                outs.append(im)
-            dif = sum([1 if (np.array_equal(v, out)) else 0 for v in outs])
-            if (dif > 0):
+                rot = i1 % 4
+                im = im.rotate(-90*rot)
+            outs.append(im)
+            dif = sum([1 if (np.array_equal(im, v)) else 0 for v in outs])
+            if (dif == 0):
                 diff = diff + 1
         return (outs, diff)
 
@@ -86,18 +82,18 @@ class ImageRecognizer:
 
     # tests image identity (before and after NN)
     def test_image_identity(self):
-        #self.show_image()
-        (out_tiles, diff) = self.get_network_output_tiles() 
-        print("Number of tiles before training: " + self.diff_tiles)          
-        print("Number of tiles after training: " + diff)      
+        (out_tiles, diff) = self.get_network_output_tiles()
+        print(diff)
         im = self.reconstruct_image(out_tiles)
         im.show()
         im.save("nn_out_" + self.image_name)
 
     # get MSE of one vector
     def get_vector_mean_squared_error(self, in_vec, out_vec):
-        out = self.NN.feedforward(in_vec)
-        return np.sum(np.square(np.subtract(out_vec, out)))
+        (vec1, index1) = in_vec
+        (vec2, index2) = out_vec
+        out = self.NN.feedforward(vec1)
+        return np.sum(np.square(np.subtract(vec2, out)))
     
     # returns the tile with the lowest MSE
     def get_tile_representation(self, in_b, out_b):
@@ -125,20 +121,21 @@ class ImageRecognizer:
 
     # prepare data for the network
     def prepare_data(self, tile_height, tile_width):
-        self.tiles = []
         width, height = self.image.size
+        counter = 0
         for i in range(0, height, tile_height):
             for j in range(0, width, tile_width):
                 ins = []
                 tile = (self.image.crop((i, j, i+tile_height, j+tile_width)))
-                self.tiles.append(tile)
                 ins.append(tile)
-                if (self.rotate): 
-                    self.rotations[str((self.get_vector_from_image(tile)).tolist())] = 0
+                if (self.rotate):
                     self.append_rotated_tiles(ins, tile)
-                else:                    
-                    self.append_shifted_tiles(ins, i, j, tile_height, tile_width) 
-                self.set_inputs_outputs(ins)
+                    self.set_inputs_outputs(ins, counter)
+                    counter = counter + 4
+                else:
+                    self.append_shifted_tiles(ins, i, j, tile_height, tile_width)
+                    self.set_inputs_outputs(ins, counter)
+                    counter = counter + 25
     
     # append shifted transforms of tiles
     def append_shifted_tiles(self, ins, i, j, tile_height, tile_width):
@@ -173,32 +170,33 @@ class ImageRecognizer:
         ins.append(self.image.crop((i, j+2, i+tile_height, j+tile_width+2)))
         # shift left
         ins.append(self.image.crop((i, j-1, i+tile_height, j+tile_width-1)))
-        ins.append(self.image.crop((i, j-2, i+tile_height, j+tile_width-2)))    
+        ins.append(self.image.crop((i, j-2, i+tile_height, j+tile_width-2)))
+        pass
 
     # append rotated transforms
     def append_rotated_tiles(self, ins, tile):
         ins.append(tile.rotate(90))
-        self.rotations[str(self.get_vector_from_image(tile.rotate(90)).tolist())] = 270
         ins.append(tile.rotate(180))
-        self.rotations[str(self.get_vector_from_image(tile.rotate(180)).tolist())] = 180
         ins.append(tile.rotate(270))
-        self.rotations[str(self.get_vector_from_image(tile.rotate(270)).tolist())] = 90
    
     # sets input/output vectors from given tiles
-    def set_inputs_outputs(self, input_tiles):
+    def set_inputs_outputs(self, input_tiles, counter):
         # input tiles
         in_batch = []
         out_batch = []
+        inner_counter = counter
         for tile in input_tiles:
             vec = self.get_vector_from_image(tile)
-            in_batch.append(vec)
-            out_batch.append(vec)
+            in_batch.append((vec, inner_counter))
+            out_batch.append((vec, inner_counter))
+            inner_counter = inner_counter + 1
             dif = sum([1 if (np.array_equal(v, vec)) else 0 for v in self.all_ins])
             if (dif > 0):
                 self.diff_tiles = self.diff_tiles + 1
             self.all_ins.append(vec)
         self.inputs.append(in_batch)
-        self.outputs.append(out_batch)  
+        self.outputs.append(out_batch)
+        pass
     
     # get a numpy column vector from image
     def get_vector_from_image(self, image):
@@ -247,9 +245,10 @@ class ImageRecognizer:
         return im
 
     # endregion
-    
+
+
 ### MAIN
 name = "pig.jpg"
-parser = ImageRecognizer(name, 50, 50, 0.7, False)
+parser = ImageRecognizer(name, 25, 25, 0.7, False)
 parser.train_network(30, 10, 0.7)
 parser.test_image_identity()
