@@ -23,8 +23,6 @@ class ImageRecognizer:
         self.threshold = threshold
         # prepare data and initialize NN
         self.rotate = rotate
-        self.all_ins = []
-        self.diff_tiles = 0
         width, height = self.image.size
         tile_height = int(height/self.tiles_vert)
         tile_width = int(width/self.tiles_horz)
@@ -67,9 +65,9 @@ class ImageRecognizer:
                 rot = i1 % 4
                 im = im.rotate(-90*rot)
             outs.append(im)
-            dif = sum([1 if (np.array_equal(im, v)) else 0 for v in outs])
-            if (dif == 0):
-                diff = diff + 1
+            #dif = sum([1 if (np.array_equal(im, v)) else 0 for v in outs])
+            #if (dif == 0):
+            #    diff = diff + 1
         return (outs, diff)
 
     # get MSE of original image
@@ -83,7 +81,7 @@ class ImageRecognizer:
     # tests image identity (before and after NN)
     def test_image_identity(self):
         (out_tiles, diff) = self.get_network_output_tiles()
-        print(diff)
+        #print(diff)
         im = self.reconstruct_image(out_tiles)
         im.show()
         im.save("nn_out_" + self.image_name)
@@ -171,7 +169,6 @@ class ImageRecognizer:
         # shift left
         ins.append(self.image.crop((i, j-1, i+tile_height, j+tile_width-1)))
         ins.append(self.image.crop((i, j-2, i+tile_height, j+tile_width-2)))
-        pass
 
     # append rotated transforms
     def append_rotated_tiles(self, ins, tile):
@@ -190,10 +187,10 @@ class ImageRecognizer:
             in_batch.append((vec, inner_counter))
             out_batch.append((vec, inner_counter))
             inner_counter = inner_counter + 1
-            dif = sum([1 if (np.array_equal(v, vec)) else 0 for v in self.all_ins])
-            if (dif > 0):
-                self.diff_tiles = self.diff_tiles + 1
-            self.all_ins.append(vec)
+            #dif = sum([1 if (np.array_equal(v, vec)) else 0 for v in self.all_ins])
+            #if (dif > 0):
+            #    self.diff_tiles = self.diff_tiles + 1
+            #self.all_ins.append(vec)
         self.inputs.append(in_batch)
         self.outputs.append(out_batch)
         pass
